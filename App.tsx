@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import HomeScreen from "./screens/HomeScreen";
+import HomeScreen from "./screens/homescreen";
 import GameScreen from "./screens/GameScreen";
 
 const Stack = createNativeStackNavigator();
