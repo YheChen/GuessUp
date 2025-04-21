@@ -12,19 +12,21 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>GuessUp</Text>
-      <DeckSelector
-        selectedDeck={selectedDeck}
-        onSelectDeck={setSelectedDeck}
-      />
       <Button
         title="Play"
         disabled={!selectedDeck}
-        onPress={() =>
-          router.push({
-            pathname: "/game",
-            params: { deck: JSON.stringify(selectedDeck) },
-          })
-        }
+        onPress={() => {
+          if (selectedDeck) {
+            router.push({
+              pathname: "/game",
+              params: { deck: JSON.stringify(selectedDeck) },
+            });
+          }
+        }}
+      />
+      <DeckSelector
+        selectedDeck={selectedDeck}
+        onSelectDeck={setSelectedDeck}
       />
       <Button title="Import Deck" onPress={() => setShowImport(true)} />
       <ImportDeckModal
