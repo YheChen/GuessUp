@@ -3,7 +3,15 @@ import { View, Text, Button } from "react-native";
 import { getDecks } from "../utils/storage";
 import { exampleDecks } from "../data/exampleDecks";
 
-export default function DeckSelector({ selectedDeck, onSelectDeck }) {
+interface DeckSelectorProps {
+  selectedDeck: { name: string } | null;
+  onSelectDeck: (deck: { name: string }) => void;
+}
+
+export default function DeckSelector({
+  selectedDeck,
+  onSelectDeck,
+}: DeckSelectorProps) {
   const [deckName, setDeckName] = useState<string | null>(null);
 
   const loadDeck = async () => {

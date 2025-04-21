@@ -2,7 +2,17 @@ import React, { useState } from "react";
 import { View, TextInput, Button, Modal } from "react-native";
 import { saveDeck } from "../utils/storage";
 
-export default function ImportDeckModal({ visible, onClose, onSave }) {
+interface ImportDeckModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSave: (deck: { name: string; prompts: string[] }) => void;
+}
+
+export default function ImportDeckModal({
+  visible,
+  onClose,
+  onSave,
+}: ImportDeckModalProps) {
   const [deckName, setDeckName] = useState("");
   const [text, setText] = useState("");
 

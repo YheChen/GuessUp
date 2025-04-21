@@ -79,9 +79,12 @@ export default function GameScreen() {
           } else {
             const elapsed = now - resetStartTime;
             setResetCountdown(
-              Math.max(0, ((NEUTRAL_HOLD_TIME - elapsed) / 1000).toFixed(1))
+              Math.max(
+                0,
+                parseFloat(((NEUTRAL_HOLD_TIME - elapsed) / 1000).toFixed(1))
+              )
             );
-            if (elapsed >= NEUTRAL_HOLD_TIME) {
+            if (elapsed >= NEUTRAL_HOLD_TIME && !tiltCooldown) {
               setCanTilt(true);
               setResetStartTime(null);
               setResetCountdown(0);
@@ -151,24 +154,22 @@ export default function GameScreen() {
           </View>
         </>
       ) : (
-        <>
-          <View style={styles.summaryContainer}>
-            <Text style={styles.prompt}>🎉 Time’s Up!</Text>
-            <Text style={styles.summaryTitle}>Final Score: {score}</Text>
-            <Text style={styles.summaryTitle}>Correct:</Text>
-            {correctPrompts.map((p, i) => (
-              <Text key={`c-${i}`} style={styles.correctItem}>
-                • {p}
-              </Text>
-            ))}
-            <Text style={styles.summaryTitle}>Skipped:</Text>
-            {skippedPrompts.map((p, i) => (
-              <Text key={`s-${i}`} style={styles.skippedItem}>
-                • {p}
-              </Text>
-            ))}
-          </View>
-        </>
+        <View style={styles.summaryContainer}>
+          <Text style={styles.prompt}>🎉 Time’s Up!</Text>
+          <Text style={styles.summaryTitle}>Final Score: {score}</Text>
+          <Text style={styles.summaryTitle}>Correct:</Text>
+          {correctPrompts.map((p, i) => (
+            <Text key={`c-${i}`} style={styles.correctItem}>
+              • {p}
+            </Text>
+          ))}
+          <Text style={styles.summaryTitle}>Skipped:</Text>
+          {skippedPrompts.map((p, i) => (
+            <Text key={`s-${i}`} style={styles.skippedItem}>
+              • {p}
+            </Text>
+          ))}
+        </View>
       )}
     </View>
   );
