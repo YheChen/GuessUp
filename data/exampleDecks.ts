@@ -4,11 +4,18 @@ export const exampleDecks = [
     prompts: ["School Shooting", "9-11"],
   },
   {
-    name: "Racism",
-    prompts: ["Racism"],
-  },
-  {
-    name: "Politics",
-    prompts: ["Donald Trump"],
+    name: "Test",
+    prompts: [
+      "Test 1",
+      "Test 2",
+      "Test 3",
+      "Test 4",
+      "Test 5",
+      "Test 6",
+      "Test 7",
+      "Test 8",
+      "Test 9",
+      "Test 10",
+    ],
   },
 ];
