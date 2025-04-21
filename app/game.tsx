@@ -17,6 +17,9 @@ export default function GameScreen() {
   const INITIAL_TIME = 60; // seconds obviously
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
   const [gameOver, setGameOver] = useState(false);
+  const [accelData, setAccelData] = useState({ x: 0, y: 0, z: 0 });
+  const [canTilt, setCanTilt] = useState(true); // gate for 1 tilt at a time
+  const [resetTimerActive, setResetTimerActive] = useState(false);
 
   // Lock screen orientation
   useEffect(() => {
@@ -55,12 +58,31 @@ export default function GameScreen() {
   useEffect(() => {
     if (gameOver) return;
 
-    Accelerometer.setUpdateInterval(300);
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
-      if (z > 0.98) {
-        handleTilt("skip"); // tilt down
-      } else if (z < -0.98) {
-        handleTilt("correct"); // tilt up
+      setAccelData({ x, y, z });
+
+      if (canTilt) {
+        if (z > 0.98) {
+          handleTilt("skip");
+          setCanTilt(false);
+        } else if (z < -0.98) {
+          handleTilt("correct");
+          setCanTilt(false);
+        }
+      } else {
+        if (Math.abs(z) < 0.5) {
+          if (!resetTimerActive) {
+            setResetTimerActive(true);
+            setTimeout(() => {
+              setCanTilt(true);
+              setResetTimerActive(false);
+            }, 1000);
+          }
+        } else {
+          if (resetTimerActive) {
+            setResetTimerActive(false);
+          }
+        }
       }
     });
 
