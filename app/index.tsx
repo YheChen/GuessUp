@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, Button, Modal, StyleSheet } from "react-native";
+import { View, Text, Button, StyleSheet } from "react-native";
 import DeckSelector from "../components/DeckSelector";
 import ImportDeckModal from "../components/ImportDeckModal";
+import { useRouter } from "expo-router";
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen() {
   const [selectedDeck, setSelectedDeck] = useState(null);
   const [showImport, setShowImport] = useState(false);
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -17,7 +19,12 @@ export default function HomeScreen({ navigation }) {
       <Button
         title="Play"
         disabled={!selectedDeck}
-        onPress={() => navigation.navigate("Game", { deck: selectedDeck })}
+        onPress={() =>
+          router.push({
+            pathname: "/game",
+            params: { deck: JSON.stringify(selectedDeck) },
+          })
+        }
       />
       <Button title="Import Deck" onPress={() => setShowImport(true)} />
       <ImportDeckModal

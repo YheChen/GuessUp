@@ -1,14 +1,14 @@
-// screens/gamescreen.tsx
-
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 
-export default function GameScreen({ route }) {
-  const { deck } = route.params;
+export default function GameScreen() {
+  const { deck } = useLocalSearchParams();
+  const parsedDeck = deck ? JSON.parse(deck as string) : { prompts: [] };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>{deck.prompts[0]}</Text>
+      <Text style={styles.prompt}>{parsedDeck.prompts[0] || "No prompt"}</Text>
     </View>
   );
 }

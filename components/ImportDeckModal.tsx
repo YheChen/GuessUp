@@ -9,7 +9,7 @@ export default function ImportDeckModal({ visible, onClose, onSave }) {
   const handleSave = async () => {
     const prompts = text
       .split("\n")
-      .map((s) => s.trim())
+      .map((p) => p.trim())
       .filter(Boolean);
     const deck = { name: deckName, prompts };
     await saveDeck(deck);

@@ -16,7 +16,3 @@ export async function getDecks(): Promise<Deck[]> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   return raw ? JSON.parse(raw) : [];
 }
-
-export async function clearDecks(): Promise<void> {
-  await AsyncStorage.removeItem(STORAGE_KEY);
-}
