@@ -8,9 +8,7 @@ export default function GameScreen() {
   const parsedDeck = deck ? JSON.parse(deck as string) : { prompts: [] };
 
   useEffect(() => {
-    ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.LANDSCAPE_LEFT
-    );
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
 
     return () => {
       ScreenOrientation.lockAsync(

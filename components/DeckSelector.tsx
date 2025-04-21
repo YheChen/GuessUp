@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, Button } from "react-native";
 import { getDecks } from "../utils/storage";
+import { exampleDecks } from "../data/exampleDecks";
 
 export default function DeckSelector({ selectedDeck, onSelectDeck }) {
   const [deckName, setDeckName] = useState<string | null>(null);
@@ -17,9 +18,24 @@ export default function DeckSelector({ selectedDeck, onSelectDeck }) {
 
   return (
     <View style={{ marginBottom: 20 }}>
+      {selectedDeck && (
+        <Text style={{ marginTop: 10 }}>Selected: {selectedDeck.name}</Text>
+      )}
       <Button title="Load Last Deck" onPress={loadDeck} />
-      {selectedDeck && <Text>Deck: {selectedDeck.name}</Text>}
-      {!selectedDeck && deckName && <Text>{deckName}</Text>}
+      <Text style={{ marginTop: 10, fontWeight: "bold" }}>
+        Or use an example deck:
+      </Text>
+      {exampleDecks.map((deck, idx) => (
+        <View key={idx} style={{ marginVertical: 4 }}>
+          <Button
+            title={`${deck.name}`}
+            onPress={() => {
+              onSelectDeck(deck);
+              setDeckName(deck.name);
+            }}
+          />
+        </View>
+      ))}
     </View>
   );
 }
