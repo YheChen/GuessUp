@@ -7,21 +7,25 @@ import { Accelerometer } from "expo-sensors";
 export default function GameScreen() {
   const { deck } = useLocalSearchParams();
   const parsedDeck = deck ? JSON.parse(deck as string) : { prompts: [] };
+
+  const INITIAL_TIME = 60;
+  const NEUTRAL_HOLD_TIME = 1000; // ms
+  const TILT_COOLDOWN_TIME = 1000; // ms
+
   const [currentPrompt, setCurrentPrompt] = useState<string | null>(null);
   const [usedPrompts, setUsedPrompts] = useState<string[]>([]);
   const [correctPrompts, setCorrectPrompts] = useState<string[]>([]);
   const [skippedPrompts, setSkippedPrompts] = useState<string[]>([]);
   const [score, setScore] = useState(0);
   const [backgroundColor, setBackgroundColor] = useState("white");
-
-  const INITIAL_TIME = 60; // seconds obviously
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
   const [gameOver, setGameOver] = useState(false);
   const [accelData, setAccelData] = useState({ x: 0, y: 0, z: 0 });
-  const [canTilt, setCanTilt] = useState(true); // gate for 1 tilt at a time
-  const [resetTimerActive, setResetTimerActive] = useState(false);
+  const [canTilt, setCanTilt] = useState(true);
+  const [resetStartTime, setResetStartTime] = useState<number | null>(null);
+  const [resetCountdown, setResetCountdown] = useState<number>(0);
+  const [tiltCooldown, setTiltCooldown] = useState(false);
 
-  // Lock screen orientation
   useEffect(() => {
     ScreenOrientation.lockAsync(
       ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT
@@ -33,67 +37,75 @@ export default function GameScreen() {
     };
   }, []);
 
-  // Set first prompt randomly
   useEffect(() => {
     const first = pickRandomPrompt(parsedDeck.prompts);
     setCurrentPrompt(first);
     setUsedPrompts(first ? [first] : []);
   }, []);
 
-  // Timer countdown
   useEffect(() => {
-    if (gameOver || timeLeft <= 0) {
-      setGameOver(true);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setTimeLeft((t) => t - 1);
+    if (gameOver) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setGameOver(true);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
+    return () => clearInterval(interval);
+  }, [gameOver]);
 
-    return () => clearTimeout(timer);
-  }, [timeLeft, gameOver]);
-
-  // Tilt detection
   useEffect(() => {
     if (gameOver) return;
 
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
       setAccelData({ x, y, z });
+      const now = Date.now();
 
-      if (canTilt) {
+      if (canTilt && !tiltCooldown) {
         if (z > 0.98) {
           handleTilt("skip");
-          setCanTilt(false);
         } else if (z < -0.98) {
           handleTilt("correct");
-          setCanTilt(false);
         }
       } else {
         if (Math.abs(z) < 0.5) {
-          if (!resetTimerActive) {
-            setResetTimerActive(true);
-            setTimeout(() => {
+          if (resetStartTime === null) {
+            setResetStartTime(now);
+            setResetCountdown(NEUTRAL_HOLD_TIME / 1000);
+          } else {
+            const elapsed = now - resetStartTime;
+            setResetCountdown(
+              Math.max(0, ((NEUTRAL_HOLD_TIME - elapsed) / 1000).toFixed(1))
+            );
+            if (elapsed >= NEUTRAL_HOLD_TIME) {
               setCanTilt(true);
-              setResetTimerActive(false);
-            }, 1000);
+              setResetStartTime(null);
+              setResetCountdown(0);
+            }
           }
         } else {
-          if (resetTimerActive) {
-            setResetTimerActive(false);
+          if (resetStartTime !== null) {
+            setResetStartTime(null);
+            setResetCountdown(0);
           }
         }
       }
     });
 
     return () => subscription.remove();
-  }, [currentPrompt, usedPrompts, gameOver]);
+  }, [currentPrompt, usedPrompts, gameOver, tiltCooldown]);
 
   const handleTilt = (type: "correct" | "skip") => {
     if (!currentPrompt || gameOver) return;
+    setCanTilt(false);
+    setTiltCooldown(true);
+    setTimeout(() => setTiltCooldown(false), TILT_COOLDOWN_TIME);
 
     Vibration.vibrate(100);
-
     if (type === "correct") {
       setScore((prev) => prev + 1);
       setCorrectPrompts((prev) => [...prev, currentPrompt]);
@@ -127,24 +139,36 @@ export default function GameScreen() {
           <Text style={styles.timer}>⏱ {timeLeft}s</Text>
           <Text style={styles.score}>✅ {score}</Text>
           <Text style={styles.prompt}>{currentPrompt || "No prompt"}</Text>
+          <View style={styles.debugBox}>
+            <Text style={styles.debugText}>z = {accelData.z.toFixed(2)}</Text>
+            <Text style={styles.debugText}>
+              Reset Timer:{" "}
+              {resetCountdown > 0 ? `${resetCountdown}s` : "Not resetting"}
+            </Text>
+            <Text style={styles.debugText}>
+              Cooldown: {tiltCooldown ? "On" : "Off"}
+            </Text>
+          </View>
         </>
       ) : (
-        <View style={styles.summaryContainer}>
-          <Text style={styles.prompt}>🎉 Time’s Up!</Text>
-          <Text style={styles.summaryTitle}>Final Score: {score}</Text>
-          <Text style={styles.summaryTitle}>Correct:</Text>
-          {correctPrompts.map((p, i) => (
-            <Text key={`c-${i}`} style={styles.correctItem}>
-              • {p}
-            </Text>
-          ))}
-          <Text style={styles.summaryTitle}>Skipped:</Text>
-          {skippedPrompts.map((p, i) => (
-            <Text key={`s-${i}`} style={styles.skippedItem}>
-              • {p}
-            </Text>
-          ))}
-        </View>
+        <>
+          <View style={styles.summaryContainer}>
+            <Text style={styles.prompt}>🎉 Time’s Up!</Text>
+            <Text style={styles.summaryTitle}>Final Score: {score}</Text>
+            <Text style={styles.summaryTitle}>Correct:</Text>
+            {correctPrompts.map((p, i) => (
+              <Text key={`c-${i}`} style={styles.correctItem}>
+                • {p}
+              </Text>
+            ))}
+            <Text style={styles.summaryTitle}>Skipped:</Text>
+            {skippedPrompts.map((p, i) => (
+              <Text key={`s-${i}`} style={styles.skippedItem}>
+                • {p}
+              </Text>
+            ))}
+          </View>
+        </>
       )}
     </View>
   );
@@ -174,4 +198,16 @@ const styles = StyleSheet.create({
   summaryTitle: { fontSize: 24, marginTop: 20, fontWeight: "bold" },
   correctItem: { color: "green", fontSize: 18, marginVertical: 2 },
   skippedItem: { color: "red", fontSize: 18, marginVertical: 2 },
+  debugBox: {
+    position: "absolute",
+    bottom: 30,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    padding: 10,
+    borderRadius: 8,
+  },
+  debugText: {
+    color: "white",
+    fontSize: 14,
+    textAlign: "center",
+  },
 });
