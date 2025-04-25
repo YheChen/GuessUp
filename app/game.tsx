@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Vibration, ScrollView } from "react-native";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Accelerometer } from "expo-sensors";
 
 export default function GameScreen() {
@@ -10,6 +10,7 @@ export default function GameScreen() {
 
   const INITIAL_TIME = 60;
   const TILT_COOLDOWN_TIME = 1000;
+  const COUNTDOWN_TIME = 5;
 
   const [currentPrompt, setCurrentPrompt] = useState<string | null>(null);
   const [usedPrompts, setUsedPrompts] = useState<string[]>([]);
@@ -22,9 +23,21 @@ export default function GameScreen() {
   const [accelData, setAccelData] = useState({ x: 0, y: 0, z: 0 });
   const [canTilt, setCanTilt] = useState(true);
   const [tiltCooldown, setTiltCooldown] = useState(false);
+  const [countdown, setCountdown] = useState(COUNTDOWN_TIME);
+  const [gameStarted, setGameStarted] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.PORTRAIT_UP
+        );
+      };
+    }, [])
+  );
 
   useEffect(() => {
-    if (gameOver) {
+    if (gameOver || !gameStarted) {
       ScreenOrientation.lockAsync(
         ScreenOrientation.OrientationLock.PORTRAIT_UP
       );
@@ -33,16 +46,30 @@ export default function GameScreen() {
         ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT
       );
     }
-  }, [gameOver]);
+  }, [gameOver, gameStarted]);
 
   useEffect(() => {
     const first = pickRandomPrompt(parsedDeck.prompts);
     setCurrentPrompt(first);
     setUsedPrompts(first ? [first] : []);
+
+    ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT
+    );
+    const countdownInterval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setGameStarted(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   }, []);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (!gameStarted || gameOver) return;
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -54,10 +81,10 @@ export default function GameScreen() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [gameOver]);
+  }, [gameStarted, gameOver]);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (!gameStarted || gameOver) return;
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
       setAccelData({ x, y, z });
       if (canTilt && !tiltCooldown) {
@@ -69,7 +96,14 @@ export default function GameScreen() {
       }
     });
     return () => subscription.remove();
-  }, [currentPrompt, usedPrompts, gameOver, tiltCooldown, canTilt]);
+  }, [
+    currentPrompt,
+    usedPrompts,
+    gameOver,
+    tiltCooldown,
+    canTilt,
+    gameStarted,
+  ]);
 
   const handleTilt = (type: "correct" | "skip") => {
     if (!currentPrompt || gameOver) return;
@@ -110,17 +144,12 @@ export default function GameScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {!gameOver ? (
+      {!gameStarted ? (
+        <Text style={styles.countdown}>Starting in {countdown}...</Text>
+      ) : !gameOver ? (
         <>
-          <Text style={styles.timer}>⏱ {timeLeft}s</Text>
-          <Text style={styles.score}>✅ {score}</Text>
           <Text style={styles.prompt}>{currentPrompt || "No prompt"}</Text>
-          <View style={styles.debugBox}>
-            <Text style={styles.debugText}>z = {accelData.z.toFixed(2)}</Text>
-            <Text style={styles.debugText}>
-              Cooldown: {tiltCooldown ? "On" : "Off"}
-            </Text>
-          </View>
+          <Text style={styles.timer}>⏱ {timeLeft}s</Text>
         </>
       ) : (
         <ScrollView contentContainerStyle={styles.summaryContainer}>
@@ -161,9 +190,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
   },
-  prompt: { fontSize: 42, textAlign: "center", marginTop: 10 },
-  timer: { position: "absolute", top: 50, left: 40, fontSize: 20 },
-  score: { position: "absolute", top: 50, right: 40, fontSize: 20 },
+  prompt: {
+    fontSize: 42,
+    textAlign: "center",
+    marginTop: 10,
+  },
+  timer: {
+    fontSize: 24,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  countdown: {
+    fontSize: 36,
+    textAlign: "center",
+  },
   summaryContainer: {
     alignItems: "center",
     padding: 20,
@@ -173,11 +214,7 @@ const styles = StyleSheet.create({
   correctItem: { color: "green", fontSize: 18, marginVertical: 2 },
   skippedItem: { color: "red", fontSize: 18, marginVertical: 2 },
   debugBox: {
-    position: "absolute",
-    bottom: 30,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    padding: 10,
-    borderRadius: 8,
+    display: "none",
   },
   debugText: {
     color: "white",
