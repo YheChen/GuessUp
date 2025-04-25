@@ -13,6 +13,7 @@ export default function GameScreen() {
   const COUNTDOWN_TIME = 5;
 
   const [currentPrompt, setCurrentPrompt] = useState<string | null>(null);
+  const [displayPrompt, setDisplayPrompt] = useState<string | null>(null);
   const [usedPrompts, setUsedPrompts] = useState<string[]>([]);
   const [correctPrompts, setCorrectPrompts] = useState<string[]>([]);
   const [skippedPrompts, setSkippedPrompts] = useState<string[]>([]);
@@ -51,6 +52,7 @@ export default function GameScreen() {
   useEffect(() => {
     const first = pickRandomPrompt(parsedDeck.prompts);
     setCurrentPrompt(first);
+    setDisplayPrompt(first);
     setUsedPrompts(first ? [first] : []);
 
     ScreenOrientation.lockAsync(
@@ -120,9 +122,11 @@ export default function GameScreen() {
       setScore((prev) => prev + 1);
       setCorrectPrompts((prev) => [...prev, currentPrompt]);
       setBackgroundColor("green");
+      setDisplayPrompt("CORRECT");
     } else {
       setSkippedPrompts((prev) => [...prev, currentPrompt]);
       setBackgroundColor("red");
+      setDisplayPrompt("PASS");
     }
 
     setTimeout(() => {
@@ -133,10 +137,12 @@ export default function GameScreen() {
       if (nextPrompt) {
         setUsedPrompts((prev) => [...prev, nextPrompt]);
         setCurrentPrompt(nextPrompt);
+        setDisplayPrompt(nextPrompt);
         setBackgroundColor("white");
       } else {
         setGameOver(true);
         setCurrentPrompt(null);
+        setDisplayPrompt(null);
         setBackgroundColor("white");
       }
     }, 300);
@@ -148,7 +154,7 @@ export default function GameScreen() {
         <Text style={styles.countdown}>Starting in {countdown}...</Text>
       ) : !gameOver ? (
         <>
-          <Text style={styles.prompt}>{currentPrompt || "No prompt"}</Text>
+          <Text style={styles.prompt}>{displayPrompt || "No prompt"}</Text>
           <Text style={styles.timer}>⏱ {timeLeft}s</Text>
         </>
       ) : (
@@ -194,6 +200,10 @@ const styles = StyleSheet.create({
     fontSize: 42,
     textAlign: "center",
     marginTop: 10,
+    color:
+      displayPrompt === "CORRECT" || displayPrompt === "PASS"
+        ? "white"
+        : "black",
   },
   timer: {
     fontSize: 24,
