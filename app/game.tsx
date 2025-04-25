@@ -143,7 +143,7 @@ export default function GameScreen() {
         setGameOver(true);
         setCurrentPrompt(null);
         setDisplayPrompt(null);
-        setBackgroundColor("white");
+        setBackgroundColor("#fdf6e3");
       }
     }, 300);
   };
