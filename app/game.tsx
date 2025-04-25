@@ -9,7 +9,6 @@ export default function GameScreen() {
   const parsedDeck = deck ? JSON.parse(deck as string) : { prompts: [] };
 
   const INITIAL_TIME = 60;
-  const NEUTRAL_HOLD_TIME = 1000; // ms
   const TILT_COOLDOWN_TIME = 1000; // ms
 
   const [currentPrompt, setCurrentPrompt] = useState<string | null>(null);
@@ -22,8 +21,6 @@ export default function GameScreen() {
   const [gameOver, setGameOver] = useState(false);
   const [accelData, setAccelData] = useState({ x: 0, y: 0, z: 0 });
   const [canTilt, setCanTilt] = useState(true);
-  const [resetStartTime, setResetStartTime] = useState<number | null>(null);
-  const [resetCountdown, setResetCountdown] = useState<number>(0);
   const [tiltCooldown, setTiltCooldown] = useState(false);
 
   useEffect(() => {
@@ -63,7 +60,6 @@ export default function GameScreen() {
 
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
       setAccelData({ x, y, z });
-      const now = Date.now();
 
       if (canTilt && !tiltCooldown) {
         if (z > 0.98) {
@@ -71,44 +67,24 @@ export default function GameScreen() {
         } else if (z < -0.98) {
           handleTilt("correct");
         }
-      } else {
-        if (Math.abs(z) < 0.5) {
-          if (resetStartTime === null) {
-            setResetStartTime(now);
-            setResetCountdown(NEUTRAL_HOLD_TIME / 1000);
-          } else {
-            const elapsed = now - resetStartTime;
-            setResetCountdown(
-              Math.max(
-                0,
-                parseFloat(((NEUTRAL_HOLD_TIME - elapsed) / 1000).toFixed(1))
-              )
-            );
-            if (elapsed >= NEUTRAL_HOLD_TIME && !tiltCooldown) {
-              setCanTilt(true);
-              setResetStartTime(null);
-              setResetCountdown(0);
-            }
-          }
-        } else {
-          if (resetStartTime !== null) {
-            setResetStartTime(null);
-            setResetCountdown(0);
-          }
-        }
       }
     });
 
     return () => subscription.remove();
-  }, [currentPrompt, usedPrompts, gameOver, tiltCooldown]);
+  }, [currentPrompt, usedPrompts, gameOver, tiltCooldown, canTilt]);
 
   const handleTilt = (type: "correct" | "skip") => {
     if (!currentPrompt || gameOver) return;
+
     setCanTilt(false);
     setTiltCooldown(true);
-    setTimeout(() => setTiltCooldown(false), TILT_COOLDOWN_TIME);
+    setTimeout(() => {
+      setTiltCooldown(false);
+      setCanTilt(true);
+    }, TILT_COOLDOWN_TIME);
 
     Vibration.vibrate(100);
+
     if (type === "correct") {
       setScore((prev) => prev + 1);
       setCorrectPrompts((prev) => [...prev, currentPrompt]);
@@ -144,10 +120,6 @@ export default function GameScreen() {
           <Text style={styles.prompt}>{currentPrompt || "No prompt"}</Text>
           <View style={styles.debugBox}>
             <Text style={styles.debugText}>z = {accelData.z.toFixed(2)}</Text>
-            <Text style={styles.debugText}>
-              Reset Timer:{" "}
-              {resetCountdown > 0 ? `${resetCountdown}s` : "Not resetting"}
-            </Text>
             <Text style={styles.debugText}>
               Cooldown: {tiltCooldown ? "On" : "Off"}
             </Text>
