@@ -18,7 +18,7 @@ export default function GameScreen() {
   const [correctPrompts, setCorrectPrompts] = useState<string[]>([]);
   const [skippedPrompts, setSkippedPrompts] = useState<string[]>([]);
   const [score, setScore] = useState(0);
-  const [backgroundColor, setBackgroundColor] = useState("white");
+  const [backgroundColor, setBackgroundColor] = useState("#fdf6e3");
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
   const [gameOver, setGameOver] = useState(false);
   const [accelData, setAccelData] = useState({ x: 0, y: 0, z: 0 });
@@ -138,7 +138,7 @@ export default function GameScreen() {
         setUsedPrompts((prev) => [...prev, nextPrompt]);
         setCurrentPrompt(nextPrompt);
         setDisplayPrompt(nextPrompt);
-        setBackgroundColor("white");
+        setBackgroundColor("#fdf6e3");
       } else {
         setGameOver(true);
         setCurrentPrompt(null);
@@ -154,7 +154,16 @@ export default function GameScreen() {
         <Text style={styles.countdown}>Starting in {countdown}...</Text>
       ) : !gameOver ? (
         <>
-          <Text style={styles.prompt}>{displayPrompt || "No prompt"}</Text>
+          <Text
+            style={[
+              styles.prompt,
+              (displayPrompt === "CORRECT" || displayPrompt === "PASS") && {
+                color: "white",
+              },
+            ]}
+          >
+            {displayPrompt || "No prompt"}
+          </Text>
           <Text style={styles.timer}>⏱ {timeLeft}s</Text>
         </>
       ) : (
@@ -200,10 +209,6 @@ const styles = StyleSheet.create({
     fontSize: 42,
     textAlign: "center",
     marginTop: 10,
-    color:
-      displayPrompt === "CORRECT" || displayPrompt === "PASS"
-        ? "white"
-        : "black",
   },
   timer: {
     fontSize: 24,
