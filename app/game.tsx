@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Vibration } from "react-native";
+import { View, Text, StyleSheet, Vibration, ScrollView } from "react-native";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useLocalSearchParams } from "expo-router";
 import { Accelerometer } from "expo-sensors";
@@ -9,7 +9,7 @@ export default function GameScreen() {
   const parsedDeck = deck ? JSON.parse(deck as string) : { prompts: [] };
 
   const INITIAL_TIME = 60;
-  const TILT_COOLDOWN_TIME = 1000; // ms
+  const TILT_COOLDOWN_TIME = 1000;
 
   const [currentPrompt, setCurrentPrompt] = useState<string | null>(null);
   const [usedPrompts, setUsedPrompts] = useState<string[]>([]);
@@ -24,15 +24,16 @@ export default function GameScreen() {
   const [tiltCooldown, setTiltCooldown] = useState(false);
 
   useEffect(() => {
-    ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT
-    );
-    return () => {
+    if (gameOver) {
       ScreenOrientation.lockAsync(
         ScreenOrientation.OrientationLock.PORTRAIT_UP
       );
-    };
-  }, []);
+    } else {
+      ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT
+      );
+    }
+  }, [gameOver]);
 
   useEffect(() => {
     const first = pickRandomPrompt(parsedDeck.prompts);
@@ -57,10 +58,8 @@ export default function GameScreen() {
 
   useEffect(() => {
     if (gameOver) return;
-
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
       setAccelData({ x, y, z });
-
       if (canTilt && !tiltCooldown) {
         if (z > 0.98) {
           handleTilt("skip");
@@ -69,13 +68,11 @@ export default function GameScreen() {
         }
       }
     });
-
     return () => subscription.remove();
   }, [currentPrompt, usedPrompts, gameOver, tiltCooldown, canTilt]);
 
   const handleTilt = (type: "correct" | "skip") => {
     if (!currentPrompt || gameOver) return;
-
     setCanTilt(false);
     setTiltCooldown(true);
     setTimeout(() => {
@@ -126,7 +123,7 @@ export default function GameScreen() {
           </View>
         </>
       ) : (
-        <View style={styles.summaryContainer}>
+        <ScrollView contentContainerStyle={styles.summaryContainer}>
           <Text style={styles.prompt}>🎉 Time’s Up!</Text>
           <Text style={styles.summaryTitle}>Final Score: {score}</Text>
           <Text style={styles.summaryTitle}>Correct:</Text>
@@ -141,7 +138,7 @@ export default function GameScreen() {
               • {p}
             </Text>
           ))}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -167,7 +164,11 @@ const styles = StyleSheet.create({
   prompt: { fontSize: 42, textAlign: "center", marginTop: 10 },
   timer: { position: "absolute", top: 50, left: 40, fontSize: 20 },
   score: { position: "absolute", top: 50, right: 40, fontSize: 20 },
-  summaryContainer: { alignItems: "center", padding: 20 },
+  summaryContainer: {
+    alignItems: "center",
+    padding: 20,
+    paddingBottom: 80,
+  },
   summaryTitle: { fontSize: 24, marginTop: 20, fontWeight: "bold" },
   correctItem: { color: "green", fontSize: 18, marginVertical: 2 },
   skippedItem: { color: "red", fontSize: 18, marginVertical: 2 },
